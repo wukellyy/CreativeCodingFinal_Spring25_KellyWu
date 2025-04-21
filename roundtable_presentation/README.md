@@ -1,5 +1,7 @@
 # Roundtable Presentation
 
+[Presentation Slides](https://docs.google.com/presentation/d/1G4I_dOgLInmbCOXPpRyAwmytpZNC8j4N36em8inW_Zg/edit?usp=sharing)
+
 ## 💡 Final Project Idea #1
 
 ### Concept
