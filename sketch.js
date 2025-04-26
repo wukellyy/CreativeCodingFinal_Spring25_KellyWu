@@ -18,6 +18,7 @@ function setup() {
 function draw() {
   background(251, 250, 240); // Cream
 
+  displayTimer();
   displayPromptedWord(currentWord);
 
   // Go to next round when time is up
@@ -26,10 +27,44 @@ function draw() {
   }
 }
 
-function displayPromptedWord(word) {
-  fill(255);
-  rect(0, height - 150, width, 150);
+function displayTimer() {
+  // Calculate remaining time
+  let timeLeft = max(0, roundDuration - (millis() - roundStartTime));
+  let totalSeconds = floor(timeLeft / 1000);
+  let minutes = floor(totalSeconds / 60);
+  let seconds = totalSeconds % 60;
 
+  // Format time as MM:SS
+  let timeString = nf(minutes, 2) + ":" + nf(seconds, 2);
+
+  // Draw timer background
+  fill(255);
+  stroke(0);
+  strokeWeight(2);
+  rectMode(CENTER);
+  rect(width / 2, 70, 160, 60, 20);
+
+  // Draw timer text
+  noStroke();
+  fill(0);
+  textFont(openSansBold);
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text(timeString, width / 2, 65);
+}
+
+function displayPromptedWord(word) {
+  rectMode(CORNER);
+  fill(255);
+  rect(0, height - 150, width, 150); // Draw the word bar
+
+  // Draw top border
+  stroke(0);
+  strokeWeight(1.5);
+  line(0, height - 150, width, height - 150);
+
+  // Draw prompted word text
+  noStroke();
   textAlign(CENTER, CENTER);
   fill(0);
 
@@ -44,7 +79,7 @@ function displayPromptedWord(word) {
 
 function nextRound() {
   currentWord = "LOADING...";
-  roundStartTime = millis();
+  roundStartTime = millis(); // Reset round timer
 
   // Fetch random word
   fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
