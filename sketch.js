@@ -1,7 +1,9 @@
 let openSansRegular;
 let openSansBold;
 let wordLength = 5;
-let currentWord = "LOADING...";
+let currentWord = "";
+let roundStartTime;
+let roundDuration = 15 * 1000; // 15 seconds
 
 function preload() {
   openSansRegular = loadFont("assets/OpenSans-Regular.ttf");
@@ -10,23 +12,18 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  background(251, 250, 240); // Cream
-
-  // Fetch random word
-  fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
-    .then((response) => response.json())
-    .then((data) => {
-      currentWord = data[0].toUpperCase();
-    })
-    .catch((err) => {
-      console.error("Failed to fetch word:", err);
-      currentWord = "ERROR: Failed to fetch word";
-    });
+  nextRound(); // Start first round
 }
 
 function draw() {
-  background(251, 250, 240);
+  background(251, 250, 240); // Cream
+
   displayPromptedWord(currentWord);
+
+  // Go to next round when time is up
+  if (millis() - roundStartTime > roundDuration) {
+    nextRound();
+  }
 }
 
 function displayPromptedWord(word) {
@@ -43,4 +40,20 @@ function displayPromptedWord(word) {
   textFont(openSansBold);
   textSize(36);
   text(word, width / 2, height - 60);
+}
+
+function nextRound() {
+  currentWord = "LOADING...";
+  roundStartTime = millis();
+
+  // Fetch random word
+  fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
+    .then((res) => res.json())
+    .then((data) => {
+      currentWord = data[0].toUpperCase();
+    })
+    .catch((err) => {
+      console.error("Failed to fetch word:", err);
+      currentWord = "ERROR";
+    });
 }
