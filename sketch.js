@@ -46,7 +46,14 @@ function displayTimer() {
 
   // Draw timer text
   noStroke();
-  fill(0);
+
+  // If time is 5 seconds or less, text turns red
+  if (totalSeconds <= 5) {
+    fill(255, 0, 0);
+  } else {
+    fill(0);
+  }
+
   textFont(openSansBold);
   textSize(32);
   textAlign(CENTER, CENTER);
