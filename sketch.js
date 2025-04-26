@@ -1,5 +1,7 @@
 let openSansRegular;
 let openSansBold;
+let wordLength = 5;
+let currentWord = "LOADING...";
 
 function preload() {
   openSansRegular = loadFont("assets/OpenSans-Regular.ttf");
@@ -9,10 +11,22 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   background(251, 250, 240); // Cream
+
+  // Fetch random word
+  fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
+    .then((response) => response.json())
+    .then((data) => {
+      currentWord = data[0].toUpperCase();
+    })
+    .catch((err) => {
+      console.error("Failed to fetch word:", err);
+      currentWord = "ERROR: Failed to fetch word";
+    });
 }
 
 function draw() {
-  displayPromptedWord("APARTMENT");
+  background(251, 250, 240);
+  displayPromptedWord(currentWord);
 }
 
 function displayPromptedWord(word) {
