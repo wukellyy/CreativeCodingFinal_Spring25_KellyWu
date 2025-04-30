@@ -5,9 +5,10 @@ let wordBarHeight;
 let wordLength = 5;
 let currentWord = "";
 let wordLoaded = false;
+let markedLetters = []; // Tracks which letters have been hit
 
 let roundStartTime;
-let roundDuration = 30 * 1000; // 30 seconds
+let roundDuration = 60 * 1000; // 60 seconds
 
 let fallingLetters = [];
 let spawnInterval = 1000; // Spawn new letter every 1 second
@@ -24,9 +25,10 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  wordBarHeight = height - 150;
 
+  wordBarHeight = height - 150;
   ball = new Ball();
+
   nextRound(); // Start first round
 }
 
@@ -64,8 +66,26 @@ function draw() {
   // Check collision with letters
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
     if (ball.hit(fallingLetters[i])) {
-      fallingLetters.splice(i, 1);
-      ball.reset(); // Reset ball after hit
+      const hitLetter = fallingLetters[i].letter;
+
+      // Only allow marking if the ball was launched
+      if (isBallMoving) {
+        for (let j = 0; j < currentWord.length; j++) {
+          if (currentWord[j] === hitLetter && !markedLetters[j]) {
+            markedLetters[j] = true;
+            break; // Only mark one occurrence
+          }
+        }
+
+        fallingLetters.splice(i, 1);
+        ball.reset();
+      }
+
+      // If all letters are marked, go to next round
+      if (markedLetters.every((item) => item === true)) {
+        nextRound();
+      }
+
       break;
     }
   }
@@ -131,10 +151,25 @@ function displayPromptedWord(word) {
   textSize(28);
   text("THE WORD IS:", width / 2, height - 100);
 
-  fill(100);
+  // Draw each letter individually with marked tracking
   textFont(openSansBold);
   textSize(36);
-  text(word, width / 2, height - 60);
+  textAlign(LEFT, CENTER);
+
+  let x = width / 2 - textWidth(currentWord) / 2;
+
+  for (let i = 0; i < currentWord.length; i++) {
+    if (markedLetters[i]) {
+      fill(0); // Black if marked
+    } else {
+      fill(100); // Gray if not
+    }
+
+    text(currentWord[i], x, height - 60);
+
+    // Add a small buffer to avoid overlap
+    x += textWidth(currentWord[i]) + 1;
+  }
 }
 
 function nextRound() {
@@ -150,6 +185,7 @@ function nextRound() {
     .then((data) => {
       currentWord = data[0].toUpperCase();
       wordLoaded = true;
+      markedLetters = new Array(currentWord.length).fill(false);
       spawnFallingLetter();
     })
     .catch((err) => {
@@ -161,11 +197,12 @@ function nextRound() {
 
 // ===== FallingLetter Class =====
 class FallingLetter {
-  constructor(x, y, letter, bgColor = [255]) {
+  constructor(x, y, letter, textColor = [0], bgColor = [255]) {
     this.pos = createVector(x, y);
     this.vel = createVector(0, 2);
     this.size = 50;
     this.letter = letter;
+    this.textColor = textColor;
     this.bgColor = bgColor;
     this.hit = false;
   }
@@ -183,7 +220,7 @@ class FallingLetter {
 
     // Draw the letter text
     noStroke();
-    fill(0);
+    fill(this.textColor);
     textFont(openSansBold);
     textSize(24);
     textAlign(CENTER, CENTER);
