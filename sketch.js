@@ -1,13 +1,21 @@
 let openSansRegular;
 let openSansBold;
+
+let wordBarHeight;
 let wordLength = 5;
 let currentWord = "";
+let wordLoaded = false;
+
 let roundStartTime;
 let roundDuration = 30 * 1000; // 30 seconds
+
 let fallingLetters = [];
 let spawnInterval = 1000; // Spawn new letter every 1 second
 let lastSpawnTime = 0;
-let wordLoaded = false;
+
+let ball;
+let ballSpeed = 10;
+let isBallMoving = false;
 
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
@@ -16,12 +24,16 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  wordBarHeight = height - 150;
+
+  ball = new Ball();
   nextRound(); // Start first round
 }
 
 function draw() {
   background(251, 250, 240); // Cream
 
+  // Falling letters logic
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
     fallingLetters[i].update();
     fallingLetters[i].display();
@@ -36,6 +48,26 @@ function draw() {
   if (millis() - lastSpawnTime > spawnInterval && wordLoaded) {
     spawnFallingLetter();
     lastSpawnTime = millis();
+  }
+
+  // Ball logic
+  ball.update();
+  ball.display();
+
+  // Draw aiming guide if not launched yet
+  if (!isBallMoving) {
+    stroke(0);
+    strokeWeight(2);
+    line(ball.pos.x, ball.pos.y, mouseX, mouseY);
+  }
+
+  // Check collision with letters
+  for (let i = fallingLetters.length - 1; i >= 0; i--) {
+    if (ball.hit(fallingLetters[i])) {
+      fallingLetters.splice(i, 1);
+      ball.reset(); // Reset ball after hit
+      break;
+    }
   }
 
   displayTimer();
@@ -83,12 +115,12 @@ function displayTimer() {
 function displayPromptedWord(word) {
   rectMode(CORNER);
   fill(255);
-  rect(0, height - 150, width, 150); // Draw the word bar
+  rect(0, wordBarHeight, width, 150); // Draw the word bar
 
   // Draw top border
   stroke(0);
   strokeWeight(1.5);
-  line(0, height - 150, width, height - 150);
+  line(0, wordBarHeight, width, wordBarHeight);
 
   // Draw prompted word text
   noStroke();
@@ -159,7 +191,58 @@ class FallingLetter {
   }
 
   isOffScreen() {
-    return this.pos.y > height + this.size;
+    return this.pos.y > wordBarHeight + this.size;
+  }
+}
+
+// ===== Ball Class =====
+class Ball {
+  constructor() {
+    this.reset();
+  }
+
+  update() {
+    if (isBallMoving) {
+      this.pos.add(this.vel);
+
+      // Reset if ball goes out of bounds
+      if (
+        this.pos.x < -this.radius ||
+        this.pos.x > width + this.radius ||
+        this.pos.y < -this.radius ||
+        this.pos.y > wordBarHeight + this.radius * 2
+      ) {
+        this.reset();
+      }
+    }
+  }
+
+  display() {
+    fill(0, 150, 255);
+    noStroke();
+    ellipse(this.pos.x, this.pos.y, this.radius * 2);
+  }
+
+  launch(targetX, targetY) {
+    if (!isBallMoving) {
+      let dir = createVector(targetX - this.pos.x, targetY - this.pos.y);
+      dir.normalize(); // Keep only the direction
+      dir.mult(ballSpeed);
+      this.vel = dir;
+      isBallMoving = true;
+    }
+  }
+
+  reset() {
+    this.pos = createVector(width / 2, wordBarHeight - 30);
+    this.vel = createVector(0, 0);
+    this.radius = 20;
+    isBallMoving = false;
+  }
+
+  hit(letterBox) {
+    let d = dist(this.pos.x, this.pos.y, letterBox.pos.x, letterBox.pos.y);
+    return d < this.radius + letterBox.size / 2;
   }
 }
 
@@ -180,4 +263,10 @@ function spawnFallingLetter() {
   let y = random(-100, -50);
   let letter = pickLetter(currentWord);
   fallingLetters.push(new FallingLetter(x, y, letter));
+}
+
+function mousePressed() {
+  if (!isBallMoving) {
+    ball.launch(mouseX, mouseY);
+  }
 }
