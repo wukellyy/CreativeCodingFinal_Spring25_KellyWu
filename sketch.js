@@ -118,9 +118,7 @@ function nextRound() {
     .then((data) => {
       currentWord = data[0].toUpperCase();
       wordLoaded = true;
-
-      // Create starting falling letters
-      spawnInitialFallingLetters(5);
+      spawnFallingLetter();
     })
     .catch((err) => {
       console.error("Failed to fetch word:", err);
@@ -182,17 +180,4 @@ function spawnFallingLetter() {
   let y = random(-100, -50);
   let letter = pickLetter(currentWord);
   fallingLetters.push(new FallingLetter(x, y, letter));
-}
-
-function spawnInitialFallingLetters(count) {
-  let safeMargin = 100;
-  let availableWidth = width - safeMargin * 2;
-  let spacing = availableWidth / (count - 1); // To have it not overlap as much
-
-  for (let i = 0; i < count; i++) {
-    let x = safeMargin + i * spacing;
-    let y = random(-300, -100);
-    let letter = pickLetter(currentWord);
-    fallingLetters.push(new FallingLetter(x, y, letter));
-  }
 }
