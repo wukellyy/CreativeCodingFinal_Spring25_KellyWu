@@ -18,9 +18,14 @@ let ball;
 let ballSpeed = 10;
 let isBallMoving = false;
 
+let heartImage;
+let heartsRemaining = 3;
+let heartSize = 40;
+
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
   openSansBold = loadFont("assets/Open_Sans/static/OpenSans-Bold.ttf");
+  heartImage = loadImage("assets/heart.png");
 }
 
 function setup() {
@@ -68,17 +73,27 @@ function draw() {
     if (ball.hit(fallingLetters[i])) {
       const hitLetter = fallingLetters[i].letter;
 
-      // Only allow marking if the ball was launched
+      // Mark letter in prompted word if hit
       if (isBallMoving) {
+        let correctHit = false;
         for (let j = 0; j < currentWord.length; j++) {
           if (currentWord[j] === hitLetter && !markedLetters[j]) {
             markedLetters[j] = true;
+            correctHit = true;
             break; // Only mark one occurrence
           }
         }
 
         fallingLetters.splice(i, 1);
         ball.reset();
+
+        if (!correctHit) {
+          heartsRemaining--;
+          if (heartsRemaining <= 0) {
+            nextRound(); // Reset the round if out of lives
+            return;
+          }
+        }
       }
 
       // If all letters are marked, go to next round
@@ -92,6 +107,7 @@ function draw() {
 
   displayTimer();
   displayPromptedWord(currentWord);
+  displayHearts();
 
   // Go to next round when time is up
   if (millis() - roundStartTime > roundDuration) {
@@ -156,19 +172,25 @@ function displayPromptedWord(word) {
   textSize(36);
   textAlign(LEFT, CENTER);
 
-  let x = width / 2 - textWidth(currentWord) / 2;
+  let x = width / 2 - textWidth(word) / 2;
 
-  for (let i = 0; i < currentWord.length; i++) {
+  for (let i = 0; i < word.length; i++) {
     if (markedLetters[i]) {
       fill(0); // Black if marked
     } else {
       fill(100); // Gray if not
     }
 
-    text(currentWord[i], x, height - 60);
+    text(word[i], x, height - 60);
 
     // Add a small buffer to avoid overlap
-    x += textWidth(currentWord[i]) + 1;
+    x += textWidth(word[i]) + 1;
+  }
+}
+
+function displayHearts() {
+  for (let i = 0; i < heartsRemaining; i++) {
+    image(heartImage, 20 + i * (heartSize + 10), 20, heartSize, heartSize);
   }
 }
 
@@ -178,6 +200,7 @@ function nextRound() {
   lastSpawnTime = millis();
   fallingLetters = [];
   wordLoaded = false;
+  heartsRemaining = 3; // Reset lives
 
   // Fetch random word
   fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
