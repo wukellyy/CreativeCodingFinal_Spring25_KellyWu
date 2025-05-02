@@ -42,7 +42,7 @@ function setup() {
   wordBarHeight = height - 150;
   ball = new Ball();
 
-  nextRound(); // Start first round
+  nextRound(false); // Start first round
 }
 
 function draw() {
