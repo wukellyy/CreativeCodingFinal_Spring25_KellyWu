@@ -15,7 +15,7 @@ let letterFallSpeed = 2;
 const MIN_FALL_SPEED = 1.5; // Minimum falling speed
 const BASE_SPAWN_INTERVAL = 1000; // 1 second
 const MAX_SPAWN_RATE = 300; // 0.3 second
-let spawnInterval = BASE_SPAWN_INTERVAL;
+let spawnInterval = 1000;
 let lastSpawnTime = 0;
 
 let ball;
@@ -25,6 +25,10 @@ let isBallMoving = false;
 let heartImage;
 let heartsRemaining = 3;
 let heartSize = 40;
+
+let score = 0;
+const MAX_WORD_LENGTH = 15;
+const BASE_WORD_LENGTH = 5;
 
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
@@ -44,7 +48,7 @@ function setup() {
 function draw() {
   background(251, 250, 240); // Cream
 
-  console.log("Current speed:", letterFallSpeed);
+  console.log(`Score: ${score}, Speed: ${letterFallSpeed}`);
 
   // Falling letters logic
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
@@ -105,7 +109,7 @@ function draw() {
           heartsRemaining--;
           letterFallSpeed = max(MIN_FALL_SPEED, letterFallSpeed * 0.9); // Decrease speed on incorrect hit
           if (heartsRemaining <= 0) {
-            nextRound(); // Reset the round if out of lives
+            nextRound(false); // Reset the round if out of lives
             return;
           }
         }
@@ -113,7 +117,7 @@ function draw() {
 
       // If all letters are marked, go to next round
       if (markedLetters.every((item) => item === true)) {
-        nextRound();
+        nextRound(true);
       }
 
       break;
@@ -123,10 +127,11 @@ function draw() {
   displayTimer();
   displayPromptedWord(currentWord);
   displayHearts();
+  displayScore();
 
   // Go to next round when time is up
   if (millis() - roundStartTime > roundDuration) {
-    nextRound();
+    nextRound(false);
   }
 }
 
@@ -209,7 +214,23 @@ function displayHearts() {
   }
 }
 
-function nextRound() {
+function displayScore() {
+  textAlign(LEFT, TOP);
+  textFont(openSansBold);
+  textSize(24);
+  fill(0);
+  text(`Score: ${score}`, 20, 80);
+}
+
+function nextRound(success = true) {
+  if (success) {
+    score++;
+    wordLength = min(MAX_WORD_LENGTH, BASE_WORD_LENGTH + score);
+  } else {
+    score = 0;
+    wordLength = BASE_WORD_LENGTH;
+  }
+
   currentWord = "LOADING...";
   roundStartTime = millis(); // Reset round timer
   lastSpawnTime = millis();
