@@ -11,7 +11,11 @@ let roundStartTime;
 let roundDuration = 60 * 1000; // 60 seconds
 
 let fallingLetters = [];
-let spawnInterval = 1000; // Spawn new letter every 1 second
+let letterFallSpeed = 2;
+const MIN_FALL_SPEED = 1.5; // Minimum falling speed
+const BASE_SPAWN_INTERVAL = 1000; // 1 second
+const MAX_SPAWN_RATE = 300; // 0.3 second
+let spawnInterval = BASE_SPAWN_INTERVAL;
 let lastSpawnTime = 0;
 
 let ball;
@@ -40,6 +44,8 @@ function setup() {
 function draw() {
   background(251, 250, 240); // Cream
 
+  console.log("Current speed:", letterFallSpeed);
+
   // Falling letters logic
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
     fallingLetters[i].update();
@@ -50,6 +56,12 @@ function draw() {
       fallingLetters.splice(i, 1);
     }
   }
+
+  // Dynamically adjust spawn rate based on fall speed
+  spawnInterval = max(
+    MAX_SPAWN_RATE,
+    BASE_SPAWN_INTERVAL - (letterFallSpeed - 2) * 100
+  );
 
   // Spawn new falling letters during round
   if (millis() - lastSpawnTime > spawnInterval && wordLoaded) {
@@ -87,8 +99,11 @@ function draw() {
         fallingLetters.splice(i, 1);
         ball.reset();
 
-        if (!correctHit) {
+        if (correctHit) {
+          letterFallSpeed *= 1.2; // Increase speed on correct hit
+        } else {
           heartsRemaining--;
+          letterFallSpeed = max(MIN_FALL_SPEED, letterFallSpeed * 0.9); // Decrease speed on incorrect hit
           if (heartsRemaining <= 0) {
             nextRound(); // Reset the round if out of lives
             return;
@@ -201,6 +216,7 @@ function nextRound() {
   fallingLetters = [];
   wordLoaded = false;
   heartsRemaining = 3; // Reset lives
+  letterFallSpeed = 2; // Reset to normal speed
 
   // Fetch random word
   fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
@@ -222,7 +238,7 @@ function nextRound() {
 class FallingLetter {
   constructor(x, y, letter, textColor = [0], bgColor = [255]) {
     this.pos = createVector(x, y);
-    this.vel = createVector(0, 2);
+    // this.vel = createVector(0, letterFallSpeed);
     this.size = 50;
     this.letter = letter;
     this.textColor = textColor;
@@ -231,7 +247,8 @@ class FallingLetter {
   }
 
   update() {
-    this.pos.add(this.vel);
+    // this.pos.add(this.vel);
+    this.pos.y += letterFallSpeed;
   }
 
   display() {
