@@ -30,10 +30,16 @@ let score = 0;
 const MAX_WORD_LENGTH = 15;
 const BASE_WORD_LENGTH = 5;
 
+let clockImage;
+let clocks = [];
+const CLOCK_DROP_CHANCE = 0.07; // 7%
+const CLOCK_TIME_BONUS = 10 * 1000; // 10 seconds
+
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
   openSansBold = loadFont("assets/Open_Sans/static/OpenSans-Bold.ttf");
   heartImage = loadImage("assets/heart.png");
+  clockImage = loadImage("assets/clock.png");
 }
 
 function setup() {
@@ -61,6 +67,20 @@ function draw() {
     }
   }
 
+  // Clock item logic
+  for (let i = clocks.length - 1; i >= 0; i--) {
+    clocks[i].update();
+    clocks[i].display();
+
+    if (clocks[i].isOffScreen()) {
+      clocks.splice(i, 1);
+    } else if (ball.hit(clocks[i])) {
+      roundStartTime += CLOCK_TIME_BONUS; // Add time
+      clocks.splice(i, 1);
+      ball.reset();
+    }
+  }
+
   // Dynamically adjust spawn rate based on fall speed
   spawnInterval = max(
     MAX_SPAWN_RATE,
@@ -70,6 +90,10 @@ function draw() {
   // Spawn new falling letters during round
   if (millis() - lastSpawnTime > spawnInterval && wordLoaded) {
     spawnFallingLetter();
+    // Chance for clock to also drop
+    if (random() < CLOCK_DROP_CHANCE) {
+      spawnClock();
+    }
     lastSpawnTime = millis();
   }
 
@@ -293,6 +317,32 @@ class FallingLetter {
   }
 }
 
+// ===== Clock Class =====
+class ClockItem {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.size = 50;
+  }
+
+  update() {
+    this.pos.y += letterFallSpeed;
+  }
+
+  display() {
+    image(
+      clockImage,
+      this.pos.x - this.size / 2,
+      this.pos.y - this.size / 2,
+      this.size,
+      this.size
+    );
+  }
+
+  isOffScreen() {
+    return this.pos.y > wordBarHeight + this.size;
+  }
+}
+
 // ===== Ball Class =====
 class Ball {
   constructor() {
@@ -361,6 +411,12 @@ function spawnFallingLetter() {
   let y = random(-100, -50);
   let letter = pickLetter(currentWord);
   fallingLetters.push(new FallingLetter(x, y, letter));
+}
+
+function spawnClock() {
+  let x = random(50, width - 50);
+  let y = random(-100, -50);
+  clocks.push(new ClockItem(x, y));
 }
 
 function mousePressed() {
