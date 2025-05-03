@@ -35,11 +35,27 @@ let clocks = [];
 const CLOCK_DROP_CHANCE = 0.07; // 7%
 const CLOCK_TIME_BONUS = 10 * 1000; // 10 seconds
 
+let gameState = "menu";
+let lossReason = "";
+let currentMode = "";
+let modeButtons = [];
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+let fallingLettersMenu = [];
+let lastMenuSpawnTime = 0;
+const MENU_SPAWN_INTERVAL = 800;
+
+let wordBank = [];
+
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
   openSansBold = loadFont("assets/Open_Sans/static/OpenSans-Bold.ttf");
+
   heartImage = loadImage("assets/heart.png");
   clockImage = loadImage("assets/clock.png");
+
+  // Fallback word list in case Random Word API has a server error
+  wordBank = loadStrings("assets/wordlist.txt");
 }
 
 function setup() {
@@ -48,13 +64,38 @@ function setup() {
   wordBarHeight = height - 150;
   ball = new Ball();
 
-  nextRound(false); // Start first round
+  // Mode buttons
+  const labels = ["Normal", "Shrink", "Rotate", "Mirror"];
+  let btnW = 200;
+  let btnH = 50;
+  for (let i = 0; i < labels.length; i++) {
+    let x = width / 2 - btnW / 2;
+    let y = height / 2 - 60 + i * 70;
+    modeButtons.push(new MenuButton(labels[i], x, y, btnW, btnH));
+  }
 }
 
 function draw() {
   background(251, 250, 240); // Cream
 
-  console.log(`Score: ${score}, Speed: ${letterFallSpeed}`);
+  if (gameState === "menu") {
+    displayStartMenu();
+    return;
+  }
+
+  // Show loading screen before word is ready
+  if (!wordLoaded) {
+    textAlign(CENTER, CENTER);
+    textFont(openSansBold);
+    textSize(32);
+    fill(100);
+    text("Loading...", width / 2, height / 2);
+    return;
+  }
+
+  console.log(
+    `Mode: ${currentMode}, Score: ${score}, Speed: ${letterFallSpeed}`
+  );
 
   // Falling letters logic
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
@@ -88,7 +129,11 @@ function draw() {
   );
 
   // Spawn new falling letters during round
-  if (millis() - lastSpawnTime > spawnInterval && wordLoaded) {
+  if (
+    gameState === "playing" &&
+    millis() - lastSpawnTime > spawnInterval &&
+    wordLoaded
+  ) {
     spawnFallingLetter();
     // Chance for clock to also drop
     if (random() < CLOCK_DROP_CHANCE) {
@@ -132,8 +177,13 @@ function draw() {
         } else {
           heartsRemaining--;
           letterFallSpeed = max(MIN_FALL_SPEED, letterFallSpeed * 0.9); // Decrease speed on incorrect hit
+
+          // Go back to start menu if out of lives
           if (heartsRemaining <= 0) {
-            nextRound(false); // Reset the round if out of lives
+            lossReason = "OUT OF LIVES";
+            gameState = "menu";
+            fallingLetters = [];
+            clocks = [];
             return;
           }
         }
@@ -153,10 +203,68 @@ function draw() {
   displayHearts();
   displayScore();
 
-  // Go to next round when time is up
+  // Go back to start menu if out of time
   if (millis() - roundStartTime > roundDuration) {
-    nextRound(false);
+    lossReason = "OUT OF TIME";
+    gameState = "menu";
+    fallingLetters = [];
+    clocks = [];
   }
+}
+
+function displayStartMenu() {
+  background(251, 250, 240); // Cream
+
+  // Falling background letters
+  for (let i = fallingLettersMenu.length - 1; i >= 0; i--) {
+    fallingLettersMenu[i].update();
+    fallingLettersMenu[i].display();
+
+    if (fallingLettersMenu[i].isOffScreen()) {
+      fallingLettersMenu.splice(i, 1);
+    }
+  }
+
+  if (millis() - lastMenuSpawnTime > MENU_SPAWN_INTERVAL) {
+    spawnMenuLetter();
+    lastMenuSpawnTime = millis();
+  }
+
+  // Transparent overlay
+  fill(0, 40);
+  noStroke();
+  rectMode(CORNER);
+  rect(0, 0, width, height);
+
+  // Menu box
+  rectMode(CENTER);
+  fill(255);
+  stroke(0);
+  strokeWeight(1.5);
+  rect(width / 2, height / 2, 320, 440, 24);
+
+  // Title
+  noStroke();
+  fill(0);
+  textFont(openSansBold);
+  textSize(28);
+  textAlign(CENTER, TOP);
+  text("Pick Game Mode", width / 2, height / 2 - 180);
+
+  // Loss reason and score
+  if (lossReason) {
+    textFont(openSansBold);
+    textSize(20);
+    fill(200, 0, 0);
+    text(lossReason, width / 2, height / 2 - 140);
+
+    fill(0);
+    textSize(18);
+    text(`Final Score: ${score}`, width / 2, height / 2 - 115);
+  }
+
+  // Buttons
+  modeButtons.forEach((btn) => btn.display());
 }
 
 function displayTimer() {
@@ -246,6 +354,17 @@ function displayScore() {
   text(`Score: ${score}`, 20, 80);
 }
 
+function resetRoundState() {
+  currentWord = "LOADING...";
+  roundStartTime = millis();
+  lastSpawnTime = millis();
+  fallingLetters = [];
+  clocks = [];
+  wordLoaded = false;
+  heartsRemaining = 3;
+  letterFallSpeed = 2;
+}
+
 function nextRound(success = true) {
   if (success) {
     score++;
@@ -255,13 +374,7 @@ function nextRound(success = true) {
     wordLength = BASE_WORD_LENGTH;
   }
 
-  currentWord = "LOADING...";
-  roundStartTime = millis(); // Reset round timer
-  lastSpawnTime = millis();
-  fallingLetters = [];
-  wordLoaded = false;
-  heartsRemaining = 3; // Reset lives
-  letterFallSpeed = 2; // Reset to normal speed
+  resetRoundState();
 
   // Fetch random word
   fetch(`https://random-word-api.herokuapp.com/word?length=${wordLength}`)
@@ -273,9 +386,11 @@ function nextRound(success = true) {
       spawnFallingLetter();
     })
     .catch((err) => {
-      console.error("Failed to fetch word:", err);
-      currentWord = "";
-      wordLoaded = false;
+      console.warn("API failed, using fallback:", err);
+      currentWord = getFallbackWord(wordLength);
+      wordLoaded = true;
+      markedLetters = new Array(currentWord.length).fill(false);
+      spawnFallingLetter();
     });
 }
 
@@ -283,7 +398,6 @@ function nextRound(success = true) {
 class FallingLetter {
   constructor(x, y, letter, textColor = [0], bgColor = [255]) {
     this.pos = createVector(x, y);
-    // this.vel = createVector(0, letterFallSpeed);
     this.size = 50;
     this.letter = letter;
     this.textColor = textColor;
@@ -292,7 +406,6 @@ class FallingLetter {
   }
 
   update() {
-    // this.pos.add(this.vel);
     this.pos.y += letterFallSpeed;
   }
 
@@ -313,6 +426,9 @@ class FallingLetter {
   }
 
   isOffScreen() {
+    if (gameState === "menu") {
+      return this.pos.y > height;
+    }
     return this.pos.y > wordBarHeight + this.size;
   }
 }
@@ -394,6 +510,51 @@ class Ball {
   }
 }
 
+// ===== Menu Button Class =====
+class MenuButton {
+  constructor(label, x, y, w, h) {
+    this.label = label;
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+  }
+
+  display() {
+    rectMode(CORNER);
+    fill(0, 200);
+    stroke(0);
+    rect(this.x, this.y, this.w, this.h, 10);
+
+    fill(255);
+    noStroke();
+    textFont(openSansBold);
+    textSize(24);
+    textAlign(CENTER, CENTER);
+    text(this.label, this.x + this.w / 2, this.y + this.h / 2);
+  }
+
+  isHovered() {
+    return (
+      mouseX > this.x &&
+      mouseX < this.x + this.w &&
+      mouseY > this.y &&
+      mouseY < this.y + this.h
+    );
+  }
+
+  handleClick() {
+    if (this.isHovered()) {
+      currentMode = this.label.toLowerCase();
+      gameState = "playing";
+      lossReason = "";
+      fallingLettersMenu = [];
+      nextRound(false);
+    }
+  }
+}
+
+// ===== Utility Functions =====
 function pickLetter(word) {
   if (random(1) < 0.7) {
     // 70% chance: pick from the word
@@ -401,7 +562,7 @@ function pickLetter(word) {
     return word[index];
   } else {
     // 30% chance: pick random A-Z letter
-    let code = floor(random(65, 91)); // ASCII codes for A-Z
+    let code = floor(random(65, 91));
     return String.fromCharCode(code);
   }
 }
@@ -419,8 +580,22 @@ function spawnClock() {
   clocks.push(new ClockItem(x, y));
 }
 
+function spawnMenuLetter() {
+  let x = random(50, width - 50);
+  let y = random(-100, -50);
+  let letter = ALPHABET.charAt(floor(random(ALPHABET.length)));
+  fallingLettersMenu.push(new FallingLetter(x, y, letter));
+}
+
+function getFallbackWord(length = 5) {
+  let filtered = wordBank.filter((word) => word.length === length);
+  return random(filtered).toUpperCase();
+}
+
 function mousePressed() {
-  if (!isBallMoving) {
+  if (gameState === "menu") {
+    modeButtons.forEach((btn) => btn.handleClick());
+  } else if (!isBallMoving) {
     ball.launch(mouseX, mouseY);
   }
 }
