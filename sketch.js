@@ -13,7 +13,7 @@ let roundDuration = 60 * 1000; // 60 seconds
 let fallingLetters = [];
 let letterFallSpeed = 2;
 const MIN_FALL_SPEED = 1.5;
-const MAX_FALL_SPEED = 6;
+const MAX_FALL_SPEED = 8;
 const BASE_SPAWN_INTERVAL = 1000; // 1 second
 const MAX_SPAWN_RATE = 300; // 0.3 second
 let spawnInterval = 1000;
@@ -564,12 +564,13 @@ class MenuButton {
 
 // ===== Utility Functions =====
 function pickLetter(word) {
-  if (random(1) < 0.7) {
-    // 70% chance: pick from the word
-    let index = floor(random(word.length));
-    return word[index];
+  if (random(1) < 0.6) {
+    // 60% chance: pick from the word (unmarked letters)
+    let unmarkedLetters = word.split("").filter((_, i) => !markedLetters[i]);
+    let index = floor(random(unmarkedLetters.length));
+    return unmarkedLetters[index];
   } else {
-    // 30% chance: pick random A-Z letter
+    // 40% chance: pick random A-Z letter
     let code = floor(random(65, 91));
     return String.fromCharCode(code);
   }
