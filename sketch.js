@@ -12,7 +12,8 @@ let roundDuration = 60 * 1000; // 60 seconds
 
 let fallingLetters = [];
 let letterFallSpeed = 2;
-const MIN_FALL_SPEED = 1.5; // Minimum falling speed
+const MIN_FALL_SPEED = 1.5;
+const MAX_FALL_SPEED = 6;
 const BASE_SPAWN_INTERVAL = 1000; // 1 second
 const MAX_SPAWN_RATE = 300; // 0.3 second
 let spawnInterval = 1000;
@@ -173,7 +174,7 @@ function draw() {
         ball.reset();
 
         if (correctHit) {
-          letterFallSpeed *= 1.2; // Increase speed on correct hit
+          letterFallSpeed = min(MAX_FALL_SPEED, letterFallSpeed * 1.2); // Increase speed on correct hit
         } else {
           heartsRemaining--;
           letterFallSpeed = max(MIN_FALL_SPEED, letterFallSpeed * 0.9); // Decrease speed on incorrect hit
