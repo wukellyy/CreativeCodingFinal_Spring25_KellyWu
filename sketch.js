@@ -143,16 +143,16 @@ function draw() {
     lastSpawnTime = millis();
   }
 
-  // Ball logic
-  ball.update();
-  ball.display();
-
   // Draw aiming guide if not launched yet
   if (!isBallMoving) {
     stroke(0);
     strokeWeight(2);
     line(ball.pos.x, ball.pos.y, mouseX, mouseY);
   }
+
+  // Ball logic
+  ball.update();
+  ball.display();
 
   // Check collision with letters
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
@@ -170,7 +170,10 @@ function draw() {
           }
         }
 
-        fallingLetters.splice(i, 1);
+        // Mark as hit and trigger feedback colors
+        fallingLetters[i].hit = true;
+        fallingLetters[i].hitColor = correctHit ? "correct" : "incorrect";
+        fallingLetters[i].hitTimer = 100;
         ball.reset();
 
         if (correctHit) {
@@ -196,6 +199,13 @@ function draw() {
       }
 
       break;
+    }
+  }
+
+  // Remove letters after their hit feedback expires
+  for (let i = fallingLetters.length - 1; i >= 0; i--) {
+    if (fallingLetters[i].hit && fallingLetters[i].hitTimer <= 0) {
+      fallingLetters.splice(i, 1);
     }
   }
 
@@ -331,7 +341,7 @@ function displayPromptedWord(word) {
     if (markedLetters[i]) {
       fill(0); // Black if marked
     } else {
-      fill(100); // Gray if not
+      fill(130); // Gray if not
     }
 
     text(word[i], x, height - 60);
@@ -404,16 +414,37 @@ class FallingLetter {
     this.textColor = textColor;
     this.bgColor = bgColor;
     this.hit = false;
+    this.hitColor = null;
+    this.hitTimer = 0; // Countdown before removal
   }
 
   update() {
     this.pos.y += letterFallSpeed;
+
+    // Decrease hit feedback timer if active
+    if (this.hit && this.hitTimer > 0) {
+      this.hitTimer -= deltaTime;
+    }
   }
 
   display() {
     // Draw the letter box
     rectMode(CENTER);
-    stroke(0);
+
+    // Hit feedback colors
+    if (this.hit) {
+      if (this.hitColor === "correct") {
+        this.bgColor = [217, 255, 218]; // light green
+        this.textColor = [0, 210, 4];
+      } else if (this.hitColor === "incorrect") {
+        this.bgColor = [255, 217, 217]; // red
+        this.textColor = [255, 0, 0];
+      }
+    }
+
+    stroke(this.textColor);
+    strokeWeight(3);
+
     fill(this.bgColor);
     rect(this.pos.x, this.pos.y, this.size, this.size);
 
@@ -496,7 +527,7 @@ class Ball {
 
       // Scale speed based on distance
       let minSpeed = 5;
-      let maxSpeed = 20;
+      let maxSpeed = 22;
       let speed = constrain(distance / 10, minSpeed, maxSpeed);
       dir.mult(speed);
 
