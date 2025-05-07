@@ -490,8 +490,15 @@ class Ball {
   launch(targetX, targetY) {
     if (!isBallMoving) {
       let dir = createVector(targetX - this.pos.x, targetY - this.pos.y);
+      let distance = dir.mag(); // Get distance from ball to cursor
       dir.normalize(); // Keep only the direction
-      dir.mult(ballSpeed);
+
+      // Scale speed based on distance
+      let minSpeed = 5;
+      let maxSpeed = 20;
+      let speed = constrain(distance / 10, minSpeed, maxSpeed);
+      dir.mult(speed);
+
       this.vel = dir;
       isBallMoving = true;
     }
