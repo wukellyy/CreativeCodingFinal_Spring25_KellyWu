@@ -26,6 +26,9 @@ let isBallMoving = false;
 let heartImage;
 let heartsRemaining = 3;
 let heartSize = 40;
+let heartDrops = [];
+const HEART_DROP_CHANCE = 0.03; // 3%
+const MAX_HEARTS = 6;
 
 let score = 0;
 const MAX_WORD_LENGTH = 15;
@@ -123,6 +126,22 @@ function draw() {
     }
   }
 
+  // Heart drop logic
+  for (let i = heartDrops.length - 1; i >= 0; i--) {
+    heartDrops[i].update();
+    heartDrops[i].display();
+
+    if (heartDrops[i].isOffScreen()) {
+      heartDrops.splice(i, 1);
+    } else if (ball.hit(heartDrops[i])) {
+      if (heartsRemaining < MAX_HEARTS) {
+        heartsRemaining++; // Gain a heart
+      }
+      heartDrops.splice(i, 1);
+      ball.reset();
+    }
+  }
+
   // Dynamically adjust spawn rate based on fall speed
   spawnInterval = max(
     MAX_SPAWN_RATE,
@@ -136,10 +155,17 @@ function draw() {
     wordLoaded
   ) {
     spawnFallingLetter();
+
     // Chance for clock to also drop
     if (random() < CLOCK_DROP_CHANCE) {
       spawnClock();
     }
+
+    // Chance for heart to drop
+    if (random() < HEART_DROP_CHANCE) {
+      spawnHeartDrop();
+    }
+
     lastSpawnTime = millis();
   }
 
@@ -491,6 +517,32 @@ class ClockItem {
   }
 }
 
+// ===== HeartDrop Class =====
+class HeartDrop {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.size = 40;
+  }
+
+  update() {
+    this.pos.y += letterFallSpeed;
+  }
+
+  display() {
+    image(
+      heartImage,
+      this.pos.x - this.size / 2,
+      this.pos.y - this.size / 2,
+      this.size,
+      this.size
+    );
+  }
+
+  isOffScreen() {
+    return this.pos.y > wordBarHeight + this.size;
+  }
+}
+
 // ===== Ball Class =====
 class Ball {
   constructor() {
@@ -618,6 +670,12 @@ function spawnClock() {
   let x = random(50, width - 50);
   let y = random(-100, -50);
   clocks.push(new ClockItem(x, y));
+}
+
+function spawnHeartDrop() {
+  let x = random(50, width - 50);
+  let y = random(-100, -50);
+  heartDrops.push(new HeartDrop(x, y));
 }
 
 function spawnMenuLetter() {
