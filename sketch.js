@@ -62,12 +62,23 @@ let lastLosingItemSpawnTime = 0;
 const LOSING_ITEM_SPAWN_INTERVAL = 150;
 const LOSING_ITEMS_PER_WAVE = 3; // 3 items per wave
 
+let hoverSound1, hoverSound2;
+let launchSound;
+
 function preload() {
   openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
   openSansBold = loadFont("assets/font/OpenSans-Bold.ttf");
 
   heartImage = loadImage("assets/img/heart.png");
   clockImage = loadImage("assets/img/clock.png");
+
+  hoverSound1 = loadSound("assets/audio/button_hover_01.mp3");
+  hoverSound1.setVolume(0.3);
+  hoverSound2 = loadSound("assets/audio/button_hover_02.mp3");
+  hoverSound2.setVolume(0.3);
+
+  launchSound = loadSound("assets/audio/ball_launch.mp3");
+  launchSound.setVolume(0.3);
 
   // Fallback word list in case Random Word API has a server error
   wordBank = loadStrings("assets/wordlist.txt");
@@ -81,12 +92,10 @@ function setup() {
 
   // Mode buttons
   const labels = ["Normal", "Shrink", "Rotate", "Mirror"];
-  let btnW = 200;
-  let btnH = 50;
   for (let i = 0; i < labels.length; i++) {
-    let x = width / 2 - btnW / 2;
+    let x = width / 2 - 100;
     let y = height / 2 - 60 + i * 70;
-    modeButtons.push(new MenuButton(labels[i], x, y, btnW, btnH));
+    modeButtons.push(new MenuButton(labels[i], x, y, 200, 50, i));
   }
 }
 
@@ -108,9 +117,9 @@ function draw() {
     return;
   }
 
-  console.log(
-    `Mode: ${currentMode}, Score: ${score}, Speed: ${letterFallSpeed}`
-  );
+  // console.log(
+  //   `Mode: ${currentMode}, Score: ${score}, Speed: ${letterFallSpeed}`
+  // );
 
   // Falling letters logic
   for (let i = fallingLetters.length - 1; i >= 0; i--) {
@@ -763,8 +772,12 @@ class Ball {
       let speed = constrain(distance / 10, minSpeed, maxSpeed);
 
       dir.mult(speed);
-
       this.vel = dir;
+
+      if (launchSound) {
+        launchSound.play();
+      }
+
       isBallMoving = true;
     }
   }
@@ -784,20 +797,31 @@ class Ball {
 
 // ===== Menu Button Class =====
 class MenuButton {
-  constructor(label, x, y, w, h) {
+  constructor(label, x, y, w, h, index) {
     this.label = label;
     this.x = x;
     this.y = y;
     this.w = w;
     this.h = h;
+    this.index = index;
+    this.wasHovered = false;
   }
 
   display() {
+    const hovering = this.isHovered();
+
+    if (hovering && !this.wasHovered) {
+      if (this.index % 2 === 0) {
+        hoverSound1.play();
+      } else {
+        hoverSound2.play();
+      }
+    }
+
+    this.wasHovered = hovering;
+
     rectMode(CORNER);
-
-    let alphaVal = this.isHovered() ? 160 : 200;
-    fill(0, alphaVal);
-
+    fill(0, hovering ? 160 : 200);
     stroke(0);
     rect(this.x, this.y, this.w, this.h, 10);
 
