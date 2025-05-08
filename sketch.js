@@ -63,11 +63,11 @@ const LOSING_ITEM_SPAWN_INTERVAL = 150;
 const LOSING_ITEMS_PER_WAVE = 3; // 3 items per wave
 
 function preload() {
-  openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
-  openSansBold = loadFont("assets/Open_Sans/static/OpenSans-Bold.ttf");
+  openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
+  openSansBold = loadFont("assets/font/OpenSans-Bold.ttf");
 
-  heartImage = loadImage("assets/heart.png");
-  clockImage = loadImage("assets/clock.png");
+  heartImage = loadImage("assets/img/heart.png");
+  clockImage = loadImage("assets/img/clock.png");
 
   // Fallback word list in case Random Word API has a server error
   wordBank = loadStrings("assets/wordlist.txt");
