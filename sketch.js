@@ -65,6 +65,7 @@ const LOSING_ITEMS_PER_WAVE = 3; // 3 items per wave
 let hoverSound1, hoverSound2;
 let launchSound;
 let letterSound, heartSound, clockSound;
+let menuMusic;
 
 function preload() {
   openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
@@ -90,6 +91,10 @@ function preload() {
   clockSound = loadSound("assets/audio/clock_sound.mp3");
   clockSound.setVolume(0.3);
 
+  menuMusic = loadSound("assets/audio/start_menu_music.mp3");
+  menuMusic.setVolume(0.25);
+  menuMusic.setLoop(true);
+
   // Fallback word list in case Random Word API has a server error
   wordBank = loadStrings("assets/wordlist.txt");
 }
@@ -113,6 +118,10 @@ function draw() {
   background(251, 250, 240); // Cream
 
   if (gameState === "menu") {
+    if (!menuMusic.isPlaying()) {
+      menuMusic.play();
+    }
+
     displayStartMenu();
     return;
   }
@@ -871,6 +880,11 @@ class MenuButton {
       lossReason = "";
       fallingLettersMenu = [];
       losingItems = [];
+
+      if (menuMusic.isPlaying()) {
+        menuMusic.stop();
+      }
+
       nextRound(false);
     }
   }
