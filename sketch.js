@@ -324,7 +324,7 @@ function displayStartMenu() {
   rectMode(CENTER);
   fill(255);
   stroke(0);
-  strokeWeight(1.5);
+  strokeWeight(3);
   rect(width / 2, height / 2, 320, 440, 24);
 
   // Title
@@ -738,7 +738,10 @@ class MenuButton {
 
   display() {
     rectMode(CORNER);
-    fill(0, 200);
+
+    let alphaVal = this.isHovered() ? 160 : 200;
+    fill(0, alphaVal);
+
     stroke(0);
     rect(this.x, this.y, this.w, this.h, 10);
 
