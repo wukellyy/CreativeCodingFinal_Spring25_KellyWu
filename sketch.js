@@ -190,6 +190,15 @@ function draw() {
     stroke(0);
     strokeWeight(2);
     line(ball.pos.x, ball.pos.y, mouseX, mouseY);
+
+    // Draw dashed line guide to help user
+    if (currentMode === "mirror") {
+      let mirrorX = 2 * ball.pos.x - mouseX;
+
+      drawingContext.setLineDash([10, 10]);
+      line(ball.pos.x, ball.pos.y, mirrorX, mouseY);
+      drawingContext.setLineDash([]);
+    }
   }
 
   // Ball logic
@@ -743,10 +752,16 @@ class Ball {
       let distance = dir.mag(); // Get distance from ball to cursor
       dir.normalize(); // Keep only the direction
 
+      // Mirror Mode: Flip the x direction of ball launch
+      if (currentMode === "mirror") {
+        dir.x *= -1;
+      }
+
       // Scale speed based on distance
       let minSpeed = 7;
       let maxSpeed = 23;
       let speed = constrain(distance / 10, minSpeed, maxSpeed);
+
       dir.mult(speed);
 
       this.vel = dir;
