@@ -29,6 +29,7 @@ let heartSize = 40;
 let heartDrops = [];
 const HEART_DROP_CHANCE = 0.03; // 3%
 const MAX_HEARTS = 6;
+let brokenHearts = []; // Store animations for broken hearts
 
 let score = 0;
 const MAX_WORD_LENGTH = 15;
@@ -205,6 +206,11 @@ function draw() {
         if (correctHit) {
           letterFallSpeed = min(MAX_FALL_SPEED, letterFallSpeed * 1.2); // Increase speed on correct hit
         } else {
+          // Get location of broken heart
+          let hx = 20 + (heartsRemaining - 1) * (heartSize + 10);
+          let hy = 20 + heartSize / 2;
+          brokenHearts.push(new BrokenHeart(hx + heartSize / 2, hy));
+
           heartsRemaining--;
           letterFallSpeed = max(MIN_FALL_SPEED, letterFallSpeed * 0.9); // Decrease speed on incorrect hit
 
@@ -238,6 +244,16 @@ function draw() {
   displayTimer();
   displayPromptedWord(currentWord);
   displayHearts();
+
+  // Broken heart animations
+  for (let i = brokenHearts.length - 1; i >= 0; i--) {
+    brokenHearts[i].update();
+    brokenHearts[i].display();
+    if (brokenHearts[i].isExpired()) {
+      brokenHearts.splice(i, 1);
+    }
+  }
+
   displayScore();
 
   // Go back to start menu if out of time
@@ -540,6 +556,51 @@ class HeartDrop {
 
   isOffScreen() {
     return this.pos.y > wordBarHeight + this.size;
+  }
+}
+
+// ===== BrokenHeart Class =====
+class BrokenHeart {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.timer = 400;
+
+    // Get left and right halves of the heart
+    const halfW = heartImage.width / 2;
+    const h = heartImage.height;
+
+    this.leftHalf = heartImage.get(0, 0, halfW, h);
+    this.rightHalf = heartImage.get(halfW, 0, halfW, h);
+  }
+
+  update() {
+    this.timer -= deltaTime;
+  }
+
+  display() {
+    push();
+    translate(this.pos.x, this.pos.y);
+    imageMode(CENTER);
+
+    // Left half
+    push();
+    translate(-10, 0); // Slide left
+    rotate(-PI / 16); // Tilt counterclockwise
+    image(this.leftHalf, 0, 0, heartSize / 2, heartSize);
+    pop();
+
+    // Right half
+    push();
+    translate(10, 0); // Slide right
+    rotate(PI / 16); // Tilt clockwise
+    image(this.rightHalf, 0, 0, heartSize / 2, heartSize);
+    pop();
+
+    pop();
+  }
+
+  isExpired() {
+    return this.timer <= 0;
   }
 }
 
