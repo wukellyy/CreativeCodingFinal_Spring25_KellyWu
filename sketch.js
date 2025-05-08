@@ -55,13 +55,12 @@ const MENU_SPAWN_INTERVAL = 800;
 
 let wordBank = [];
 
-let losingClocks = [];
-let losingClockSpawnStart = 0;
-let losingClockSpawnDuration = 2000; // 2 seconds
-
-let lastLosingClockSpawnTime = 0;
-const LOSING_CLOCK_SPAWN_INTERVAL = 150;
-const LOSING_CLOCKS_PER_WAVE = 3; // 3 clocks per wave
+let losingItems = [];
+let losingItemSpawnStart = 0;
+let losingItemSpawnDuration = 2000; // 2 seconds
+let lastLosingItemSpawnTime = 0;
+const LOSING_ITEM_SPAWN_INTERVAL = 150;
+const LOSING_ITEMS_PER_WAVE = 3; // 3 items per wave
 
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
@@ -236,6 +235,8 @@ function draw() {
             gameState = "menu";
             fallingLetters = [];
             clocks = [];
+
+            losingItemSpawnStart = millis();
             return;
           }
         }
@@ -290,7 +291,8 @@ function draw() {
     fallingLetters = [];
     clocks = [];
 
-    losingClockSpawnStart = millis();
+    losingItemSpawnStart = millis();
+    return;
   }
 }
 
@@ -299,7 +301,7 @@ function displayStartMenu() {
 
   // Falling background letters
   for (let i = fallingLettersMenu.length - 1; i >= 0; i--) {
-    fallingLettersMenu[i].update();
+    fallingLettersMenu[i].update(2);
     fallingLettersMenu[i].display();
 
     if (fallingLettersMenu[i].isOffScreen()) {
@@ -348,26 +350,36 @@ function displayStartMenu() {
   // Buttons
   modeButtons.forEach((btn) => btn.display());
 
-  // Spawn losing clocks
+  // Spawn losing items
   if (
-    lossReason === "OUT OF TIME" &&
-    millis() - losingClockSpawnStart < losingClockSpawnDuration &&
-    millis() - lastLosingClockSpawnTime > LOSING_CLOCK_SPAWN_INTERVAL
+    (lossReason === "OUT OF TIME" || lossReason === "OUT OF LIVES") &&
+    millis() - losingItemSpawnStart < losingItemSpawnDuration &&
+    millis() - lastLosingItemSpawnTime > LOSING_ITEM_SPAWN_INTERVAL
   ) {
-    for (let i = 0; i < LOSING_CLOCKS_PER_WAVE; i++) {
-      let x = random(50, width - 50);
-      let y = random(-300, -50);
-      losingClocks.push(new ClockItem(x, y, 100, 5));
+    for (let i = 0; i < LOSING_ITEMS_PER_WAVE; i++) {
+      const x = random(50, width - 50);
+      const y = random(-300, -50);
+
+      let item;
+      if (lossReason === "OUT OF TIME") {
+        item = new FallingClock(x, y, 100);
+      } else if (lossReason === "OUT OF LIVES") {
+        item = new FallingHeart(x, y, 100);
+      }
+
+      losingItems.push(item);
     }
-    lastLosingClockSpawnTime = millis();
+
+    lastLosingItemSpawnTime = millis();
   }
 
   // Display/update losing clocks
-  for (let i = losingClocks.length - 1; i >= 0; i--) {
-    losingClocks[i].update();
-    losingClocks[i].display();
-    if (losingClocks[i].pos.y > height + losingClocks[i].size) {
-      losingClocks.splice(i, 1);
+  for (let i = losingItems.length - 1; i >= 0; i--) {
+    losingItems[i].update(5);
+    losingItems[i].display();
+
+    if (losingItems[i].pos.y > height + losingItems[i].size) {
+      losingItems.splice(i, 1);
     }
   }
 }
@@ -512,8 +524,8 @@ class FallingLetter {
     this.hitTimer = 0; // Countdown before removal
   }
 
-  update() {
-    this.pos.y += letterFallSpeed;
+  update(speed = letterFallSpeed) {
+    this.pos.y += speed;
 
     // Decrease hit feedback timer if active
     if (this.hit && this.hitTimer > 0) {
@@ -559,16 +571,15 @@ class FallingLetter {
   }
 }
 
-// ===== Clock Class =====
-class ClockItem {
-  constructor(x, y, size = 50, speed = letterFallSpeed) {
+// ===== FallingClock Class =====
+class FallingClock {
+  constructor(x, y, size = 50) {
     this.pos = createVector(x, y);
     this.size = size;
-    this.speed = speed;
   }
 
-  update() {
-    this.pos.y += this.speed;
+  update(speed = letterFallSpeed) {
+    this.pos.y += speed;
   }
 
   display() {
@@ -586,15 +597,15 @@ class ClockItem {
   }
 }
 
-// ===== HeartDrop Class =====
-class HeartDrop {
-  constructor(x, y) {
+// ===== FallingHeart Class =====
+class FallingHeart {
+  constructor(x, y, size = 40) {
     this.pos = createVector(x, y);
-    this.size = 40;
+    this.size = size;
   }
 
-  update() {
-    this.pos.y += letterFallSpeed;
+  update(speed = letterFallSpeed) {
+    this.pos.y += speed;
   }
 
   display() {
@@ -754,6 +765,7 @@ class MenuButton {
       gameState = "playing";
       lossReason = "";
       fallingLettersMenu = [];
+      losingItems = [];
       nextRound(false);
     }
   }
@@ -783,13 +795,13 @@ function spawnFallingLetter() {
 function spawnClock() {
   let x = random(50, width - 50);
   let y = random(-100, -50);
-  clocks.push(new ClockItem(x, y));
+  clocks.push(new FallingClock(x, y, 50));
 }
 
 function spawnHeartDrop() {
   let x = random(50, width - 50);
   let y = random(-100, -50);
-  heartDrops.push(new HeartDrop(x, y));
+  heartDrops.push(new FallingHeart(x, y, 40));
 }
 
 function spawnMenuLetter() {
