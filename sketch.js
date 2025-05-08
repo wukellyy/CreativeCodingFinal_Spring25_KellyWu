@@ -29,7 +29,7 @@ let isBallMoving = false;
 let heartImage;
 let heartsRemaining = 3;
 let heartSize = 40;
-let heartDrops = [];
+let hearts = [];
 const HEART_DROP_CHANCE = 0.03; // 3%
 const MAX_HEARTS = 6;
 let brokenHearts = []; // Store animations for broken hearts
@@ -64,6 +64,7 @@ const LOSING_ITEMS_PER_WAVE = 3; // 3 items per wave
 
 let hoverSound1, hoverSound2;
 let launchSound;
+let letterSound, heartSound, clockSound;
 
 function preload() {
   openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
@@ -79,6 +80,15 @@ function preload() {
 
   launchSound = loadSound("assets/audio/ball_launch.mp3");
   launchSound.setVolume(0.3);
+
+  letterSound = loadSound("assets/audio/letter_sound.mp3");
+  letterSound.setVolume(0.15);
+
+  heartSound = loadSound("assets/audio/heart_sound.wav");
+  heartSound.setVolume(0.1);
+
+  clockSound = loadSound("assets/audio/clock_sound.mp3");
+  clockSound.setVolume(0.3);
 
   // Fallback word list in case Random Word API has a server error
   wordBank = loadStrings("assets/wordlist.txt");
@@ -139,10 +149,14 @@ function draw() {
 
     if (clocks[i].isOffScreen()) {
       clocks.splice(i, 1);
-    } else if (ball.hit(clocks[i])) {
+    } else if (isBallMoving && ball.hit(clocks[i])) {
+      if (clockSound) {
+        clockSound.play();
+      }
+
       roundStartTime += CLOCK_TIME_BONUS; // Add time
 
-      // Pop effect
+      // Time pop effect
       timerPopScale = 1.4;
       timerPopDuration = 200;
 
@@ -152,17 +166,21 @@ function draw() {
   }
 
   // Heart drop logic
-  for (let i = heartDrops.length - 1; i >= 0; i--) {
-    heartDrops[i].update();
-    heartDrops[i].display();
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    hearts[i].update();
+    hearts[i].display();
 
-    if (heartDrops[i].isOffScreen()) {
-      heartDrops.splice(i, 1);
-    } else if (ball.hit(heartDrops[i])) {
+    if (hearts[i].isOffScreen()) {
+      hearts.splice(i, 1);
+    } else if (isBallMoving && ball.hit(hearts[i])) {
+      if (heartSound) {
+        heartSound.play();
+      }
+
       if (heartsRemaining < MAX_HEARTS) {
         heartsRemaining++; // Gain a heart
       }
-      heartDrops.splice(i, 1);
+      hearts.splice(i, 1);
       ball.reset();
     }
   }
@@ -228,6 +246,10 @@ function draw() {
             correctHit = true;
             break; // Only mark one occurrence
           }
+        }
+
+        if (letterSound) {
+          letterSound.play();
         }
 
         // Mark as hit and trigger feedback colors
@@ -892,7 +914,7 @@ function spawnClock() {
 function spawnHeartDrop() {
   let x = random(50, width - 50);
   let y = random(-100, -50);
-  heartDrops.push(new FallingHeart(x, y, 40));
+  hearts.push(new FallingHeart(x, y, 40));
 }
 
 function spawnMenuLetter() {
