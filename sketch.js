@@ -537,6 +537,7 @@ class FallingLetter {
     this.hit = false;
     this.hitColor = null;
     this.hitTimer = 0; // Countdown before removal
+    this.rotationAngle = 0;
   }
 
   update(speed = letterFallSpeed) {
@@ -551,28 +552,38 @@ class FallingLetter {
     if (currentMode === "shrink") {
       this.size = max(30, this.size - 0.15);
     }
+    // Rotate Mode: keep rotating letter box
+    else if (currentMode === "rotate") {
+      this.rotationAngle += 0.05;
+    }
   }
 
   display() {
-    // Draw the letter box
+    push();
+    translate(this.pos.x, this.pos.y);
+
+    if (currentMode === "rotate") {
+      rotate(this.rotationAngle);
+    }
+
     rectMode(CENTER);
 
     // Hit feedback colors
     if (this.hit) {
       if (this.hitColor === "correct") {
-        this.bgColor = [217, 255, 218]; // light green
+        this.bgColor = [217, 255, 218]; // Light green
         this.textColor = [0, 210, 4];
       } else if (this.hitColor === "incorrect") {
-        this.bgColor = [255, 217, 217]; // red
+        this.bgColor = [255, 217, 217]; // Light red
         this.textColor = [255, 0, 0];
       }
     }
 
+    // Draw the letter box
     stroke(this.textColor);
     strokeWeight(3);
-
     fill(this.bgColor);
-    rect(this.pos.x, this.pos.y, this.size, this.size);
+    rect(0, 0, this.size, this.size);
 
     // Draw the letter text
     noStroke();
@@ -580,7 +591,9 @@ class FallingLetter {
     textFont(openSansBold);
     textSize(this.size * 0.5);
     textAlign(CENTER, CENTER);
-    text(this.letter, this.pos.x, this.pos.y);
+    text(this.letter, 0, 0);
+
+    pop();
   }
 
   isOffScreen() {
