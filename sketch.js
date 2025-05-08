@@ -10,6 +10,9 @@ let markedLetters = []; // Tracks which letters have been hit
 let roundStartTime;
 let roundDuration = 60 * 1000; // 60 seconds
 
+let timerPopScale = 1;
+let timerPopDuration = 0;
+
 let fallingLetters = [];
 let letterFallSpeed = 2;
 const MIN_FALL_SPEED = 1.5;
@@ -122,6 +125,11 @@ function draw() {
       clocks.splice(i, 1);
     } else if (ball.hit(clocks[i])) {
       roundStartTime += CLOCK_TIME_BONUS; // Add time
+
+      // Pop effect
+      timerPopScale = 1.4;
+      timerPopDuration = 200;
+
       clocks.splice(i, 1);
       ball.reset();
     }
@@ -241,6 +249,17 @@ function draw() {
     }
   }
 
+  // Animate timer pop if active
+  if (timerPopDuration > 0) {
+    timerPopDuration -= deltaTime;
+    timerPopScale -= 0.01;
+    if (timerPopScale < 1) {
+      timerPopScale = 1;
+    }
+  } else {
+    timerPopScale = 1;
+  }
+
   displayTimer();
   displayPromptedWord(currentWord);
   displayHearts();
@@ -348,7 +367,7 @@ function displayTimer() {
   }
 
   textFont(openSansBold);
-  textSize(32);
+  textSize(32 * timerPopScale);
   textAlign(CENTER, CENTER);
   text(timeString, width / 2, 65);
 }
