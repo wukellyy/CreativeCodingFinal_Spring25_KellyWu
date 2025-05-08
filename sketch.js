@@ -55,6 +55,14 @@ const MENU_SPAWN_INTERVAL = 800;
 
 let wordBank = [];
 
+let losingClocks = [];
+let losingClockSpawnStart = 0;
+let losingClockSpawnDuration = 2000; // 2 seconds
+
+let lastLosingClockSpawnTime = 0;
+const LOSING_CLOCK_SPAWN_INTERVAL = 150;
+const LOSING_CLOCKS_PER_WAVE = 3; // 3 clocks per wave
+
 function preload() {
   openSansRegular = loadFont("assets/Open_Sans/static/OpenSans-Regular.ttf");
   openSansBold = loadFont("assets/Open_Sans/static/OpenSans-Bold.ttf");
@@ -281,6 +289,8 @@ function draw() {
     gameState = "menu";
     fallingLetters = [];
     clocks = [];
+
+    losingClockSpawnStart = millis();
   }
 }
 
@@ -337,6 +347,29 @@ function displayStartMenu() {
 
   // Buttons
   modeButtons.forEach((btn) => btn.display());
+
+  // Spawn losing clocks
+  if (
+    lossReason === "OUT OF TIME" &&
+    millis() - losingClockSpawnStart < losingClockSpawnDuration &&
+    millis() - lastLosingClockSpawnTime > LOSING_CLOCK_SPAWN_INTERVAL
+  ) {
+    for (let i = 0; i < LOSING_CLOCKS_PER_WAVE; i++) {
+      let x = random(50, width - 50);
+      let y = random(-300, -50);
+      losingClocks.push(new ClockItem(x, y, 100, 5));
+    }
+    lastLosingClockSpawnTime = millis();
+  }
+
+  // Display/update losing clocks
+  for (let i = losingClocks.length - 1; i >= 0; i--) {
+    losingClocks[i].update();
+    losingClocks[i].display();
+    if (losingClocks[i].pos.y > height + losingClocks[i].size) {
+      losingClocks.splice(i, 1);
+    }
+  }
 }
 
 function displayTimer() {
@@ -528,13 +561,14 @@ class FallingLetter {
 
 // ===== Clock Class =====
 class ClockItem {
-  constructor(x, y) {
+  constructor(x, y, size = 50, speed = letterFallSpeed) {
     this.pos = createVector(x, y);
-    this.size = 50;
+    this.size = size;
+    this.speed = speed;
   }
 
   update() {
-    this.pos.y += letterFallSpeed;
+    this.pos.y += this.speed;
   }
 
   display() {
