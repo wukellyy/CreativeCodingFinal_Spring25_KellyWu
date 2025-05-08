@@ -283,6 +283,7 @@ function draw() {
   }
 
   displayScore();
+  displayGameMode();
 
   // Go back to start menu if out of time
   if (millis() - roundStartTime > roundDuration) {
@@ -471,6 +472,20 @@ function displayScore() {
   text(`Score: ${score}`, 20, 80);
 }
 
+function displayGameMode() {
+  if (currentMode) {
+    textAlign(LEFT, TOP);
+    textFont(openSansBold);
+    textSize(18);
+    fill(80);
+    text(
+      `Mode: ${currentMode.charAt(0).toUpperCase() + currentMode.slice(1)}`,
+      20,
+      120
+    );
+  }
+}
+
 function resetRoundState() {
   currentWord = "LOADING...";
   roundStartTime = millis();
@@ -531,6 +546,11 @@ class FallingLetter {
     if (this.hit && this.hitTimer > 0) {
       this.hitTimer -= deltaTime;
     }
+
+    // Shrink Mode: shrink size gradually until minimum
+    if (currentMode === "shrink") {
+      this.size = max(30, this.size - 0.15);
+    }
   }
 
   display() {
@@ -558,7 +578,7 @@ class FallingLetter {
     noStroke();
     fill(this.textColor);
     textFont(openSansBold);
-    textSize(24);
+    textSize(this.size * 0.5);
     textAlign(CENTER, CENTER);
     text(this.letter, this.pos.x, this.pos.y);
   }
@@ -580,6 +600,10 @@ class FallingClock {
 
   update(speed = letterFallSpeed) {
     this.pos.y += speed;
+
+    if (currentMode === "shrink") {
+      this.size = max(30, this.size - 0.1);
+    }
   }
 
   display() {
@@ -606,6 +630,10 @@ class FallingHeart {
 
   update(speed = letterFallSpeed) {
     this.pos.y += speed;
+
+    if (currentMode === "shrink") {
+      this.size = max(25, this.size - 0.1);
+    }
   }
 
   display() {
