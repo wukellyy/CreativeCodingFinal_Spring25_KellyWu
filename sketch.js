@@ -703,8 +703,8 @@ class Ball {
       dir.normalize(); // Keep only the direction
 
       // Scale speed based on distance
-      let minSpeed = 5;
-      let maxSpeed = 22;
+      let minSpeed = 7;
+      let maxSpeed = 23;
       let speed = constrain(distance / 10, minSpeed, maxSpeed);
       dir.mult(speed);
 
@@ -773,13 +773,21 @@ class MenuButton {
 
 // ===== Utility Functions =====
 function pickLetter(word) {
-  if (random(1) < 0.6) {
-    // 60% chance: pick from the word (unmarked letters)
-    let unmarkedLetters = word.split("").filter((_, i) => !markedLetters[i]);
+  let unmarkedLetters = word.split("").filter((_, i) => !markedLetters[i]);
+  let chance = 0.6;
+
+  if (unmarkedLetters.length === 1) {
+    chance = 0.4;
+  } else if (unmarkedLetters.length > 1 && unmarkedLetters.length < 4) {
+    chance = 0.5;
+  }
+
+  if (random(1) < chance) {
+    // Pick unmarked letter from prompted word
     let index = floor(random(unmarkedLetters.length));
     return unmarkedLetters[index];
   } else {
-    // 40% chance: pick random A-Z letter
+    // Pick random A-Z letter
     let code = floor(random(65, 91));
     return String.fromCharCode(code);
   }
