@@ -68,6 +68,15 @@ let letterSound, heartSound, clockSound;
 let menuMusic, gameMusic;
 let losingSound;
 
+let howToPlayImage;
+
+let isPaused = false;
+let pauseTimestamp = 0;
+let pausedTime = 0;
+
+let wasMenuMusicPlaying = false;
+let wasGameMusicPlaying = false;
+
 function preload() {
   openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
   openSansBold = loadFont("assets/font/OpenSans-Bold.ttf");
@@ -113,6 +122,8 @@ function preload() {
 
   // Fallback word list in case Random Word API has a server error
   wordBank = loadStrings("assets/wordlist.txt");
+
+  howToPlayImage = loadImage("assets/img/how_to_play.png");
 }
 
 function setup() {
@@ -138,11 +149,18 @@ function draw() {
   }
 
   if (gameState === "menu") {
-    if (!menuMusic.isPlaying()) {
+    if (!isPaused && !menuMusic.isPlaying() && !wasMenuMusicPlaying) {
       menuMusic.play();
     }
 
     displayStartMenu();
+    drawHelpButton();
+
+    if (isPaused) {
+      displayPauseOverlay();
+      return;
+    }
+
     return;
   }
 
@@ -371,6 +389,7 @@ function draw() {
 
   displayScore();
   displayGameMode();
+  drawHelpButton();
 
   // Go back to start menu if out of time
   if (millis() - roundStartTime > roundDuration) {
@@ -400,24 +419,36 @@ function draw() {
     losingItemSpawnStart = millis();
     return;
   }
+
+  if (isPaused) {
+    displayPauseOverlay();
+    return;
+  }
 }
 
 function displayStartMenu() {
   background(251, 250, 240); // Cream
 
   // Falling background letters
-  for (let i = fallingLettersMenu.length - 1; i >= 0; i--) {
-    fallingLettersMenu[i].update(2);
-    fallingLettersMenu[i].display();
+  if (!isPaused) {
+    for (let i = fallingLettersMenu.length - 1; i >= 0; i--) {
+      fallingLettersMenu[i].update(2);
+      fallingLettersMenu[i].display();
 
-    if (fallingLettersMenu[i].isOffScreen()) {
-      fallingLettersMenu.splice(i, 1);
+      if (fallingLettersMenu[i].isOffScreen()) {
+        fallingLettersMenu.splice(i, 1);
+      }
     }
-  }
 
-  if (millis() - lastMenuSpawnTime > MENU_SPAWN_INTERVAL) {
-    spawnMenuLetter();
-    lastMenuSpawnTime = millis();
+    if (millis() - lastMenuSpawnTime > MENU_SPAWN_INTERVAL) {
+      spawnMenuLetter();
+      lastMenuSpawnTime = millis();
+    }
+  } else {
+    // Display without updating letter positions
+    for (let i = fallingLettersMenu.length - 1; i >= 0; i--) {
+      fallingLettersMenu[i].display();
+    }
   }
 
   // Transparent overlay
@@ -904,7 +935,7 @@ class MenuButton {
   display() {
     const hovering = this.isHovered();
 
-    if (hovering && !this.wasHovered) {
+    if (!isPaused && hovering && !this.wasHovered) {
       if (this.index % 2 === 0 && !hoverSound1.isPlaying()) {
         hoverSound1.play();
       } else if (!hoverSound2.isPlaying()) {
@@ -1041,7 +1072,95 @@ function isTooCloseToLetter(x, minDistance = 60) {
   return false;
 }
 
+function drawHelpButton() {
+  const x = width - 40;
+  const y = 40;
+  const r = 25;
+
+  const hovering = dist(mouseX, mouseY, x, y) < r;
+
+  // Button circle
+  fill(hovering ? "#f6bd60" : "#f4a261");
+  stroke("#d97706");
+  strokeWeight(2);
+  ellipse(x, y, r * 2);
+
+  // Question mark
+  fill(255);
+  noStroke();
+  textFont(openSansBold);
+  textSize(24);
+  textAlign(CENTER, CENTER);
+  text("?", x, y - 2);
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+
+  if (isPaused) {
+    pauseTimestamp = millis();
+    noLoop();
+
+    // Remember what was playing
+    wasMenuMusicPlaying = menuMusic.isPlaying();
+    wasGameMusicPlaying = gameMusic.isPlaying();
+
+    // Pause if playing
+    if (wasMenuMusicPlaying) {
+      menuMusic.pause();
+    }
+    if (wasGameMusicPlaying) {
+      gameMusic.pause();
+    }
+  } else {
+    const deltaPaused = millis() - pauseTimestamp;
+    roundStartTime += deltaPaused;
+    loop();
+
+    // Only resume music if it was previously playing
+    if (gameState === "menu" && wasMenuMusicPlaying) {
+      menuMusic.play();
+      wasMenuMusicPlaying = false;
+    }
+    if (gameState === "playing" && wasGameMusicPlaying) {
+      gameMusic.play();
+    }
+  }
+}
+
+function displayPauseOverlay() {
+  // Dim screen
+  fill(0, 180);
+  noStroke();
+  rect(0, 0, width, height);
+
+  // Show How to Play image
+  imageMode(CENTER);
+  image(
+    howToPlayImage,
+    width / 2,
+    height / 2,
+    howToPlayImage.width * 0.6,
+    howToPlayImage.height * 0.6
+  );
+}
+
 function mousePressed() {
+  // Pause/resume when clicking help button
+  const dx = mouseX - (width - 40);
+  const dy = mouseY - 40;
+  if (sqrt(dx * dx + dy * dy) < 25) {
+    togglePause();
+    return;
+  }
+
+  // Resume if clicking anywhere while paused
+  if (isPaused) {
+    togglePause();
+    return;
+  }
+
+  // Game interactions
   if (gameState === "menu") {
     modeButtons.forEach((btn) => btn.handleClick());
   } else if (!isBallMoving) {
