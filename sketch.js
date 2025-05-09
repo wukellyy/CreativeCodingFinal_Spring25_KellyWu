@@ -310,10 +310,11 @@ function draw() {
         if (correctHit) {
           letterFallSpeed = min(MAX_FALL_SPEED, letterFallSpeed * 1.2); // Increase speed on correct hit
         } else {
-          // Get location of broken heart
-          let hx = 20 + (heartsRemaining - 1) * (heartSize + 10);
-          let hy = 20 + heartSize / 2;
-          brokenHearts.push(new BrokenHeart(hx + heartSize / 2, hy));
+          // Calculate the on-screen position of the last heart
+          let heartX =
+            20 + (heartsRemaining - 1) * (heartSize + 10) + heartSize / 2;
+          let heartY = 20 + heartSize / 2;
+          brokenHearts.push(new BrokenHeart(heartX, heartY));
 
           heartsRemaining--;
           letterFallSpeed = max(MIN_FALL_SPEED, letterFallSpeed * 0.9); // Decrease speed on incorrect hit
@@ -819,8 +820,8 @@ class BrokenHeart {
 
   display() {
     push();
-    translate(this.pos.x, this.pos.y);
     imageMode(CENTER);
+    translate(this.pos.x, this.pos.y);
 
     // Left half
     push();
@@ -884,8 +885,8 @@ class Ball {
       }
 
       // Scale speed based on distance
-      let minSpeed = 7;
-      let maxSpeed = 23;
+      let minSpeed = 10;
+      let maxSpeed = 25;
       let speed = constrain(distance / 10, minSpeed, maxSpeed);
 
       dir.mult(speed);
@@ -1136,6 +1137,7 @@ function displayPauseOverlay() {
   rect(0, 0, width, height);
 
   // Show How to Play image
+  push();
   imageMode(CENTER);
   image(
     howToPlayImage,
@@ -1144,6 +1146,7 @@ function displayPauseOverlay() {
     howToPlayImage.width * 0.6,
     howToPlayImage.height * 0.6
   );
+  pop();
 }
 
 function fadeInMenuMusicAfterDelay(delay = 2500) {
