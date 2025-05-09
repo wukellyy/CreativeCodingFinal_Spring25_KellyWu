@@ -66,6 +66,7 @@ let hoverSound1, hoverSound2;
 let launchSound;
 let letterSound, heartSound, clockSound;
 let menuMusic, gameMusic;
+let losingSound;
 
 function preload() {
   openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
@@ -76,20 +77,27 @@ function preload() {
 
   hoverSound1 = loadSound("assets/audio/button_hover_01.mp3");
   hoverSound1.setVolume(0.3);
+  hoverSound1.playMode("restart");
+
   hoverSound2 = loadSound("assets/audio/button_hover_02.mp3");
   hoverSound2.setVolume(0.3);
+  hoverSound2.playMode("restart");
 
   launchSound = loadSound("assets/audio/ball_launch.mp3");
   launchSound.setVolume(0.3);
+  launchSound.playMode("restart");
 
   letterSound = loadSound("assets/audio/letter_sound.mp3");
   letterSound.setVolume(0.15);
+  letterSound.playMode("restart");
 
   heartSound = loadSound("assets/audio/heart_sound.wav");
   heartSound.setVolume(0.1);
+  heartSound.playMode("restart");
 
   clockSound = loadSound("assets/audio/clock_sound.mp3");
   clockSound.setVolume(0.3);
+  clockSound.playMode("restart");
 
   menuMusic = loadSound("assets/audio/start_menu_music.mp3");
   menuMusic.setVolume(0.25);
@@ -98,6 +106,10 @@ function preload() {
   gameMusic = loadSound("assets/audio/in_game_music.mp3");
   gameMusic.setVolume(0.25);
   gameMusic.setLoop(true);
+
+  losingSound = loadSound("assets/audio/losing_sound.mp3");
+  losingSound.setVolume(0.2);
+  losingSound.playMode("restart");
 
   // Fallback word list in case Random Word API has a server error
   wordBank = loadStrings("assets/wordlist.txt");
@@ -120,6 +132,10 @@ function setup() {
 
 function draw() {
   background(251, 250, 240); // Cream
+
+  if (gameState !== "menu" && menuMusic.isPlaying()) {
+    menuMusic.stop();
+  }
 
   if (gameState === "menu") {
     if (!menuMusic.isPlaying()) {
@@ -293,6 +309,19 @@ function draw() {
               gameMusic.stop();
             }
 
+            if (losingSound.isPlaying()) {
+              losingSound.stop();
+            }
+            losingSound.setVolume(0.2);
+            losingSound.play();
+
+            // Fade into menu music
+            setTimeout(() => {
+              menuMusic.setVolume(0);
+              if (!menuMusic.isPlaying()) menuMusic.play();
+              menuMusic.setVolume(0.25, 2); // Fade in over 2 seconds
+            }, 2500);
+
             losingItemSpawnStart = millis();
             return;
           }
@@ -352,6 +381,19 @@ function draw() {
     if (gameMusic.isPlaying()) {
       gameMusic.stop();
     }
+
+    if (losingSound.isPlaying()) {
+      losingSound.stop();
+    }
+    losingSound.setVolume(0.2);
+    losingSound.play();
+
+    // Fade into menu music
+    setTimeout(() => {
+      menuMusic.setVolume(0);
+      if (!menuMusic.isPlaying()) menuMusic.play();
+      menuMusic.setVolume(0.25, 2); // Fade in over 2 seconds
+    }, 2500);
 
     losingItemSpawnStart = millis();
     return;
@@ -549,13 +591,20 @@ function displayGameMode() {
 
 function resetRoundState() {
   currentWord = "LOADING...";
+  wordLoaded = false;
   roundStartTime = millis();
   lastSpawnTime = millis();
+
   fallingLetters = [];
   clocks = [];
-  wordLoaded = false;
-  heartsRemaining = 3;
+  hearts = [];
+  brokenHearts = [];
+  markedLetters = [];
+
   letterFallSpeed = 2;
+  heartsRemaining = 3;
+
+  ball.reset();
 }
 
 function nextRound(success = true) {
@@ -854,9 +903,9 @@ class MenuButton {
     const hovering = this.isHovered();
 
     if (hovering && !this.wasHovered) {
-      if (this.index % 2 === 0) {
+      if (this.index % 2 === 0 && !hoverSound1.isPlaying()) {
         hoverSound1.play();
-      } else {
+      } else if (!hoverSound2.isPlaying()) {
         hoverSound2.play();
       }
     }
@@ -892,6 +941,10 @@ class MenuButton {
       lossReason = "";
       fallingLettersMenu = [];
       losingItems = [];
+
+      if (losingSound.isPlaying()) {
+        losingSound.stop();
+      }
 
       if (menuMusic.isPlaying()) {
         menuMusic.stop();
