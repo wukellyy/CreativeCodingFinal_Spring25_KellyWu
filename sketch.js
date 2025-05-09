@@ -67,6 +67,7 @@ let launchSound;
 let letterSound, heartSound, clockSound;
 let menuMusic, gameMusic;
 let losingSound;
+let menuMusicFadeInTimeout = null;
 
 let howToPlayImage;
 
@@ -76,6 +77,7 @@ let pausedTime = 0;
 
 let wasMenuMusicPlaying = false;
 let wasGameMusicPlaying = false;
+let wasLosingSoundPlaying = false;
 
 function preload() {
   openSansRegular = loadFont("assets/font/OpenSans-Regular.ttf");
@@ -334,12 +336,7 @@ function draw() {
             losingSound.setVolume(0.2);
             losingSound.play();
 
-            // Fade into menu music
-            setTimeout(() => {
-              menuMusic.setVolume(0);
-              if (!menuMusic.isPlaying()) menuMusic.play();
-              menuMusic.setVolume(0.25, 2); // Fade in over 2 seconds
-            }, 2500);
+            fadeInMenuMusicAfterDelay();
 
             losingItemSpawnStart = millis();
             return;
@@ -409,12 +406,7 @@ function draw() {
     losingSound.setVolume(0.2);
     losingSound.play();
 
-    // Fade into menu music
-    setTimeout(() => {
-      menuMusic.setVolume(0);
-      if (!menuMusic.isPlaying()) menuMusic.play();
-      menuMusic.setVolume(0.25, 2); // Fade in over 2 seconds
-    }, 2500);
+    fadeInMenuMusicAfterDelay();
 
     losingItemSpawnStart = millis();
     return;
@@ -1104,6 +1096,7 @@ function togglePause() {
     // Remember what was playing
     wasMenuMusicPlaying = menuMusic.isPlaying();
     wasGameMusicPlaying = gameMusic.isPlaying();
+    wasLosingSoundPlaying = losingSound.isPlaying();
 
     // Pause if playing
     if (wasMenuMusicPlaying) {
@@ -1111,6 +1104,9 @@ function togglePause() {
     }
     if (wasGameMusicPlaying) {
       gameMusic.pause();
+    }
+    if (wasLosingSoundPlaying) {
+      losingSound.pause();
     }
   } else {
     const deltaPaused = millis() - pauseTimestamp;
@@ -1124,6 +1120,11 @@ function togglePause() {
     }
     if (gameState === "playing" && wasGameMusicPlaying) {
       gameMusic.play();
+      wasGameMusicPlaying = false;
+    }
+    if (gameState === "menu" && wasLosingSoundPlaying) {
+      losingSound.play();
+      wasLosingSoundPlaying = false;
     }
   }
 }
@@ -1143,6 +1144,26 @@ function displayPauseOverlay() {
     howToPlayImage.width * 0.6,
     howToPlayImage.height * 0.6
   );
+}
+
+function fadeInMenuMusicAfterDelay(delay = 2500) {
+  // Cancel any existing timeout
+  if (menuMusicFadeInTimeout) {
+    clearTimeout(menuMusicFadeInTimeout);
+  }
+
+  menuMusicFadeInTimeout = setTimeout(() => {
+    // Do not play menu music if the game is still paused
+    if (isPaused) {
+      menuMusicFadeInTimeout = null;
+      return;
+    }
+
+    menuMusic.setVolume(0);
+    if (!menuMusic.isPlaying()) menuMusic.play();
+    menuMusic.setVolume(0.25, 2); // Fade in over 2 seconds
+    menuMusicFadeInTimeout = null;
+  }, delay);
 }
 
 function mousePressed() {
