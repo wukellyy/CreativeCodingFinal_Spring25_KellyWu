@@ -235,7 +235,7 @@ function draw() {
 
     // Chance for heart to drop
     if (random() < HEART_DROP_CHANCE) {
-      spawnHeartDrop();
+      spawnHeart();
     }
 
     lastSpawnTime = millis();
@@ -302,6 +302,7 @@ function draw() {
           if (heartsRemaining <= 0) {
             lossReason = "OUT OF LIVES";
             gameState = "menu";
+            currentMode = "";
             fallingLetters = [];
             clocks = [];
 
@@ -375,6 +376,7 @@ function draw() {
   if (millis() - roundStartTime > roundDuration) {
     lossReason = "OUT OF TIME";
     gameState = "menu";
+    currentMode = "";
     fallingLetters = [];
     clocks = [];
 
@@ -989,15 +991,33 @@ function spawnFallingLetter() {
 }
 
 function spawnClock() {
-  let x = random(50, width - 50);
-  let y = random(-100, -50);
-  clocks.push(new FallingClock(x, y, 50));
+  const possibleX = [];
+  for (let i = 50; i <= width - 50; i += 10) {
+    if (!isTooCloseToLetter(i)) {
+      possibleX.push(i);
+    }
+  }
+
+  if (possibleX.length > 0) {
+    const x = random(possibleX);
+    const y = random(-100, -50);
+    clocks.push(new FallingClock(x, y, 50));
+  }
 }
 
-function spawnHeartDrop() {
-  let x = random(50, width - 50);
-  let y = random(-100, -50);
-  hearts.push(new FallingHeart(x, y, 40));
+function spawnHeart() {
+  const possibleX = [];
+  for (let i = 50; i <= width - 50; i += 10) {
+    if (!isTooCloseToLetter(i)) {
+      possibleX.push(i);
+    }
+  }
+
+  if (possibleX.length > 0) {
+    const x = random(possibleX);
+    const y = random(-100, -50);
+    hearts.push(new FallingHeart(x, y, 40));
+  }
 }
 
 function spawnMenuLetter() {
@@ -1010,6 +1030,15 @@ function spawnMenuLetter() {
 function getFallbackWord(length = 5) {
   let filtered = wordBank.filter((word) => word.length === length);
   return random(filtered).toUpperCase();
+}
+
+function isTooCloseToLetter(x, minDistance = 60) {
+  for (let letter of fallingLetters) {
+    if (abs(x - letter.pos.x) < minDistance) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function mousePressed() {
